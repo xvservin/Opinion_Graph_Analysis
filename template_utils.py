@@ -16,18 +16,19 @@ def perform_t_test(degrees, avg_degree, p_value):
     sample_mean = np.mean(degrees)
     sample_std = np.std(degrees, ddof=1)  # Sample standard deviation
     n = len(degrees)
-    
-    # Calculate the t-statistic
-    if (sample_std / np.sqrt(n) == 0) : 
+
+
+    if (sample_std / np.sqrt(n) == 0):
         t_stat = 0
-    else : 
+    else :
         t_stat = (sample_mean - avg_degree) / (sample_std / np.sqrt(n))
-    
-    # Calculate the p-value for a two-tailed test
-    p_val = 2 * p_value(np.abs(t_stat), df=n-1)
+        print(f"avg_degree: {avg_degree}")
+        print(f"sample_std: {sample_std}")
+    p_val = 2 * p_value(np.absolute(t_stat), df=n-1)
+
     
     return p_val
-
+    
 def Dictionary_creation(dataframe):
     dataframe.columns = ['source', 'target', 'weight']
     adj = {}
@@ -152,3 +153,23 @@ def count_bridges(adj):
 
     return len(bridges)
   
+def my_combinations(iterable, r):
+    """
+    Génère toutes les combinaisons de r éléments parmi les éléments de iterable.
+    """
+    pool = tuple(iterable)
+    n = len(pool)
+    if r > n:
+        return
+    indices = list(range(r))
+    yield tuple(pool[i] for i in indices)
+    while True:
+        for i in reversed(range(r)):
+            if indices[i] != i + n - r:
+                break
+        else:
+            return
+        indices[i] += 1
+        for j in range(i + 1, r):
+            indices[j] = indices[j - 1] + 1
+        yield tuple(pool[i] for i in indices)

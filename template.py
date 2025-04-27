@@ -58,62 +58,70 @@ def Q2(dataframe):
 
 # Undirected graph
 # Task 3: Paths lengths analysis
+def bfs(adj, start):
+    visited = {start: 0}  # Node -> distance from start
+    queue = [start]
+
+    while queue:
+        node = queue.pop(0)  # no deque, just list pop(0)
+        for neighbor in adj[node]:
+            if neighbor not in visited:
+                visited[neighbor] = visited[node] + 1
+                queue.append(neighbor)
+    return visited
+
 def Q3(dataframe):
-    # Your code here 
-    adj = Dictionary_creation(df)
-    visited = set()
+    adj = Dictionary_creation(dataframe)
+
+    visited_global = set()
     components = []
 
     # Find all connected components
     for node in adj:
-        if node not in visited:
-            component = []
-            queue = [node]
-            visited.add(node)
-            while queue:
-                current = queue.pop(0)
-                component.append(current)
-                for neighbor in adj[current]:
-                    if neighbor not in visited:
-                        visited.add(neighbor)
-                        queue.append(neighbor)
-            components.append(component)
+        if node not in visited_global:
+            visited = bfs(adj, node)
+            components.append(list(visited.keys()))
+            visited_global.update(visited.keys())
 
-    # Compute path lengths and diameter
+    # Find largest component
+    largest_component = max(components, key=lambda x: len(x))
+
+    # Compute diameter of the largest component
+    diameter = 0
+    for node in largest_component:
+        distances = bfs(adj, node)
+        for other_node in largest_component:
+            if other_node in distances:
+                diameter = max(diameter, distances[other_node])
+
+    # Count shortest paths lengths across all components
     path_length_counts = {}
-    largest_diameter = 0
-    largest_cc_size = 0
 
-    for comp in components:
-        comp_size = len(comp)
-        if comp_size > largest_cc_size:
-            largest_cc_size = comp_size
-            largest_component = comp
+    for component in components:
+        for i in range(len(component)):
+            start = component[i]
+            distances = bfs(adj, start)
+            for j in range(i + 1, len(component)):
+                end = component[j]
+                if end in distances:
+                    dist = distances[end]
+                    if dist not in path_length_counts:
+                        path_length_counts[dist] = 0
+                    path_length_counts[dist] += 1
 
-        for i in range(len(comp)):
-            for j in range(i+1, len(comp)):
-                u, v = comp[i], comp[j]
-                dist = shortest_path_length(u, v, adj)
-                if dist != float('inf'):
-                    path_length_counts[dist] = path_length_counts.get(dist, 0) + 1
+    # Prepare the output list
+    if path_length_counts:
+        max_len = max(path_length_counts.keys())
+    else:
+        max_len = 0
 
-    # Compute diameter of the largest connected component
-    for i in range(len(largest_component)):
-        for j in range(i+1, len(largest_component)):
-            u, v = largest_component[i], largest_component[j]
-            dist = shortest_path_length(u, v, adj)
-            if dist != float('inf'):
-                if dist > largest_diameter:
-                    largest_diameter = dist
+    result = [0] * (max_len + 1)
+    result[0] = diameter  # diameter at index 0
 
-    # Build final result list
-    max_length = max(path_length_counts.keys())
-    result = [largest_diameter] + [0] * max_length
-    for length, count in path_length_counts.items():
-        result[length] = count
-    print("OK3")
+    for length in path_length_counts:
+        result[length] = path_length_counts[length]
+
     return result
-
      #return [0, 0, 0, 0, 0 ...]# at index 0, the diameter of the largest connected component, at index 1 the total number of shortest paths of length 1 accross all components,
     # at index the 2 the number of shortest paths of length 2...
     
@@ -166,7 +174,6 @@ def Q4(dataframe):
     # Find node with highest PageRank
     max_node = max(PR, key=PR.get)
     max_value = PR[max_node]
-    print("OK4")
     return [max_node, max_value]
     # the id of the node with the highest pagerank score, the associated pagerank value.
     # Note that we consider that we reached convergence when the sum of the updates on all nodes after one iteration of PageRank is smaller than 10^(-6)
@@ -200,11 +207,11 @@ def Q5(dataframe):
         if len(neighbors) < 2:
             continue
         # All pairs of neighbors of u
-        for v, w in combinations(neighbors, 2):
+        for v, w in my_combinations(neighbors, 2):
             if v in adj and w in adj[v]:
                 # Triangle found
                 num_triangles += 1
-                closed_triplets += 3  # Each triangle contributes 3 closed triplets
+                closed_triplets += 1  # Each triangle contributes 3 closed triplets
                 
                 # Check balance: product of the 3 edge weights
                 weight_product = (
@@ -221,7 +228,7 @@ def Q5(dataframe):
     for u in adj:
         deg = len(adj[u])
         if deg >= 2:
-            total_triplets += deg * (deg - 1) / 2
+            total_triplets += deg * (deg - 1) // 2
 
     if total_triplets == 0:
         gcc = 0.0
@@ -230,15 +237,19 @@ def Q5(dataframe):
 
     # Since each triangle is counted 3 times, divide total number of triangles by 3
     num_triangles = num_triangles // 3
+    if (num_balanced != 0 ):
+        num_balanced = num_balanced // 3
+    if (num_unbalanced != 0 ):
+        num_unbalanced = num_unbalanced // 3
 
     return [num_triangles, num_balanced, num_unbalanced, gcc]
  # number of triangles, number of balanced triangles, number of unbalanced triangles and the GCC.
 
 # you can write additionnal functions that can be used in Q1-Q5 functions in the file "template_utils.py", a specific place is available to copy them at the end of the Inginious task.
 
-df = pd.read_csv('test.txt', header=None,sep="    ", engine="python")
-#print("Q1", Q1(df))
-print("Q2", Q2(df))
-print("Q3", Q3(df))
-print("Q4", Q4(df))
-print("Q5", Q5(df))
+df = pd.read_csv('epinion.txt', header=None,sep="    ", engine="python")
+print("Q1", Q1(df))
+# print("Q2", Q2(df))
+# print("Q3", Q3(df))
+# print("Q4", Q4(df))
+# print("Q5", Q5(df))
