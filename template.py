@@ -15,11 +15,11 @@ def Q1(dataframe):
     adj = Dictionary_creation(dataframe)
 
     avg_degree = Avg_degree(adj)
-    
+
     nb_bridges = count_bridges(adj)
 
     nb_local_bridges = count_local_bridges(adj)
-    
+
     local_bridges = return_local_bridges(adj)
 
     degrees = degrees_attached_to_local_bridges(adj, local_bridges)
@@ -62,53 +62,63 @@ def Q2(dataframe):
     # plt.show()
     return [max_node, max_score]
 
+from collections import deque, defaultdict
+
+def bfs_distances(graph, start):
+    distances = {start: 0}
+    queue = deque([start])
+    
+    while queue:
+        node = queue.popleft()
+        for neighbor in graph[node]:
+            if neighbor not in distances:
+                distances[neighbor] = distances[node] + 1
+                queue.append(neighbor)
+    return distances
+
 def Q3(dataframe):
     adj = Dictionary_creation(dataframe)
     visited_global = set()
     components = []
+
+    # Trouver tous les composants connexes (BFS une seule fois par composant)
     for node in adj:
         if node not in visited_global:
-            visited = bfs(adj, node)
-            components.append(list(visited.keys()))
-            visited_global.update(visited.keys())
-    largest_component = max(components, key=lambda x: len(x))
+            visited = bfs_distances(adj, node)
+            component = list(visited.keys())
+            components.append(component)
+            visited_global.update(component)
+
+    # Étape 1 : Calcul du diamètre sur le plus grand composant
+    largest_component = max(components, key=len)
     diameter = 0
     for node in largest_component:
-        distances = bfs(adj, node)
-        for other_node in largest_component:
-            if other_node in distances:
-                diameter = max(diameter, distances[other_node])
-    path_length_counts = {}
+        distances = bfs_distances(adj, node)
+        max_dist = max(distances.values())
+        diameter = max(diameter, max_dist)
+
+    # Étape 2 : Compter les longueurs de chemins courts dans tous les composants
+    path_length_counts = defaultdict(int)
     for component in components:
-        for i in range(len(component)):
-            start = component[i]
-            distances = bfs(adj, start)
-            for j in range(i + 1, len(component)):
-                end = component[j]
-                if end in distances:
-                    dist = distances[end]
-                    if dist not in path_length_counts:
-                        path_length_counts[dist] = 0
+        for node in component:
+            distances = bfs_distances(adj, node)
+            for other, dist in distances.items():
+                if node < other:  # éviter les doublons (compter chaque paire une fois)
                     path_length_counts[dist] += 1
+
+    # Générer les résultats
     if path_length_counts:
-        max_len = max(path_length_counts.keys())
+        max_len = max(path_length_counts)
     else:
         max_len = 0
+
     result = [0] * (max_len + 1)
     result[0] = diameter
-    for length in path_length_counts:
-        result[length] = path_length_counts[length]
-    # import matplotlib.pyplot as plt
-    # plt.figure(figsize=(8, 6))
-    # x = sorted(path_length_counts.keys())
-    # y = [path_length_counts[length] for length in x]
-    # plt.bar(x, y, color='skyblue', edgecolor='black', alpha=0.8)
-    # plt.xlabel('Shortest Path Length')
-    # plt.ylabel('Number of Node Pairs')
-    # plt.title('Distribution of Shortest Path Lengths')
-    # plt.grid(True, linestyle='--', alpha=0.7)
-    # plt.show()
+    for length, count in path_length_counts.items():
+        result[length] = count
+
     return result
+
 
 def Q4(dataframe):
     d = 0.85
@@ -209,7 +219,7 @@ def Q5(df):
 
 df = pd.read_csv('epinion.txt', header=None,sep="    ", engine="python")
 print("Q1", Q1(df))
-# print("Q2", Q2(df))
-# print("Q3", Q3(df))
-# print("Q4", Q4(df))
-#print("Q5", Q5(df))
+print("Q2", Q2(df))
+print("Q3", Q3(df))
+print("Q4", Q4(df))
+print("Q5", Q5(df))

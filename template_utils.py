@@ -1,6 +1,18 @@
 import numpy as np
 import pandas as pd
+from collections import deque, defaultdict
 
+def bfs_distances(graph, start):
+    distances = {start: 0}
+    queue = deque([start])
+    
+    while queue:
+        node = queue.popleft()
+        for neighbor in graph[node]:
+            if neighbor not in distances:
+                distances[neighbor] = distances[node] + 1
+                queue.append(neighbor)
+    return distances
 def degrees_attached_to_local_bridges(adj, local_bridges):
     degrees = []
     seen_nodes = set()
