@@ -73,40 +73,34 @@ def return_local_bridges(adj):
                 checked_edges.add((v, key))
     return local_bridges
 
-def is_local_bridge(u, v, adj):
-    shortest_path_length_before_removal = shortest_path_length(u, v, adj)
-    # Suppression temporaire de l'arête (u, v)
-    if v == u:
-        adj[u].remove(v)
-    else:
-        adj[u].remove(v)
-        adj[v].remove(u)
-    new_length = shortest_path_length(u, v, adj)
-    # Réinsertion de l'arête supprimée
-    if v == u:
-        adj[u].append(v)
-    else:
-        adj[u].append(v)
-        adj[v].append(u)
-    # Utilisation de ">=" pour inclure le cas où new_length == shortest_path_length_before_removal + 2
-    return new_length >= shortest_path_length_before_removal + 2
-
-def shortest_path_length(u, v, adj):
-    if u == v:
-        return 0  
-
-    queue = [(u, 0)]  
-    visited = set()   
-    visited.add(u)
-    while queue:
-        current_node, distance = queue.pop(0)  
-        for neighbor in adj[current_node]:
-            if neighbor == v:
-                return distance + 1
+def shortest_path_length(start, target, adj, ignore_edge=None):
+    # ignore_edge est un tuple (u, v) à ignorer (dans les deux sens)
+    from collections import deque
+    q = deque()
+    q.append((start, 0))
+    visited = set([start])
+    while q:
+        current, dist = q.popleft()
+        if current == target:
+            return dist
+        for neighbor in adj[current]:
+            # Si l'arête courante correspond à ignore_edge (dans un sens ou l'autre), on l'ignore
+            if ignore_edge is not None and ((current, neighbor) == ignore_edge or (neighbor, current) == ignore_edge):
+                continue
             if neighbor not in visited:
                 visited.add(neighbor)
-                queue.append((neighbor, distance + 1))
+                q.append((neighbor, dist + 1))
     return float('inf')
+    
+def is_local_bridge(u, v, adj):
+    # Optimisation : si u et v ont un voisin commun, alors l'arête fait partie d'un triangle
+    if set(adj[u]).intersection(adj[v]):
+        return False
+    # Sinon, calculer la distance sans ignorer l'arête
+    shortest_before = shortest_path_length(u, v, adj)
+    # Puis la distance en ignorant l'arête (u, v)
+    new_length = shortest_path_length(u, v, adj, ignore_edge=(u, v))
+    return new_length >= shortest_before + 2
 
 def Avg_degree(adj):
             

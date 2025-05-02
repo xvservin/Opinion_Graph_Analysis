@@ -143,54 +143,73 @@ def Q4(dataframe):
     max_value = PR[max_node]
     return [max_node, max_value]
 
-def Q5(dataframe):
-    dataframe.columns = ['source', 'target', 'weight']
-    adj = Dictionary_creation(dataframe)
-    num_triangles = 0
-    num_balanced = 0
-    num_unbalanced = 0
-    closed_triplets = 0
-    total_triplets = 0
+def Q5(df):
+    df.columns = ['source', 'target', 'weight']
+    
+    # Enlever les self-loops dès le départ
+    df = df[df['source'] != df['target']]
+    
+    adj = Dictionary_creation(df)
 
-    edge_weights = {}
-    for idx, row in dataframe.iterrows():
+    # Créer un dictionnaire pour accéder rapidement aux poids
+    weights = {}
+    for _, row in df.iterrows():
         u, v, w = row['source'], row['target'], row['weight']
-        edge_weights[frozenset([u, v])] = w
+        if (u, v) not in weights and (v, u) not in weights:
+            weights[(u, v)] = w
+            weights[(v, u)] = w
+
+
+    triangles = set()
+    balanced = 0
+    unbalanced = 0
+    
+    # Parcourir en garantissant un ordre croissant
+    for u in sorted(adj):
+        for v in sorted(adj[u]):
+            if v <= u:
+                continue
+            for w in sorted(adj[v]):
+                if w <= v or w == u or w not in adj[u]:
+                    continue
+                triangle = (u, v, w)  # u < v < w garanti
+                if triangle not in triangles:
+                    triangles.add(triangle)
+                    
+                s1 = weights.get((u, v), weights.get((v, u)))
+                s2 = weights.get((v, w), weights.get((w, v)))
+                s3 = weights.get((w, u), weights.get((u, w)))
+                if s1 is not None and s2 is not None and s3 is not None:
+                    prod = s1 * s2 * s3
+                    if prod == 1:
+                        balanced += 1
+                    else:
+                        unbalanced += 1
+
+    num_triangles = len(triangles)
+    closed_triplets = num_triangles * 3
+
+    # Calcul des triplets ouverts
+    open_triplets = 0
     for u in adj:
         neighbors = adj[u]
-        if len(neighbors) < 2:
-            continue
-        for v, w in my_combinations(neighbors, 2):
-            if v in adj and w in adj[v]:
-                num_triangles += 1
-                closed_triplets += 1
-                weight_product = (
-                    edge_weights[frozenset([u, v])] *
-                    edge_weights[frozenset([v, w])] *
-                    edge_weights[frozenset([w, u])]
-                )
-                if weight_product > 0:
-                    num_balanced += 1
-                else:
-                    num_unbalanced += 1
-    for u in adj:
-        deg = len(adj[u])
-        if deg >= 2:
-            total_triplets += deg * (deg - 1) // 2
-    if total_triplets == 0:
-        gcc = 0.0
-    else:
-        gcc = closed_triplets / total_triplets
-    num_triangles = num_triangles // 3
-    if (num_balanced != 0 ):
-        num_balanced = num_balanced // 3
-    if (num_unbalanced != 0 ):
-        num_unbalanced = num_unbalanced // 3
-    return [num_triangles, num_balanced, num_unbalanced, gcc]
+        k = len(neighbors)
+        for i in range(k):
+            for j in range(i + 1, k):
+                v = neighbors[i]
+                w = neighbors[j]
+                # Vérifie que ce n’est pas un triangle fermé
+                if v != w and w not in adj[v]:
+                    open_triplets += 1
+
+    gcc = closed_triplets / open_triplets if open_triplets > 0 else 0
+
+    return [num_triangles, balanced, unbalanced, gcc]
+
 
 df = pd.read_csv('epinion.txt', header=None,sep="    ", engine="python")
-#print("Q1", Q1(df))
+print("Q1", Q1(df))
 # print("Q2", Q2(df))
 # print("Q3", Q3(df))
 # print("Q4", Q4(df))
-print("Q5", Q5(df))
+#print("Q5", Q5(df))
